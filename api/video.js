@@ -1,37 +1,77 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+// api/video.js - DeepSeek API Version
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+  // Set CORS headers for browser requests (optional but good practice)
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
   try {
-    // Handle both GET and POST
-    let topic = 'Motivation';
-    
-    if (req.method === 'POST') {
-      if (req.body && req.body.topic) {
-        topic = req.body.topic;
-      }
-    } else {
-      // GET request
-      topic = req.query.topic || 'Motivation';
+    // 1. Get the topic from the request
+    let topic = 'Motivation'; // Default
+    if (req.method === 'POST' && req.body && req.body.topic) {
+      topic = req.body.topic;
+    } else if (req.method === 'GET' && req.query.topic) {
+      topic = req.query.topic;
     }
-    
-    // Gemini setup
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    // Test Gemini
-    const result = await model.generateContent(`Create a short video script about: ${topic}`);
-    const text = result.response.text();
-    
-    res.status(200).json({ 
-      success: true, 
-      message: text,
-      topic: topic,
-      note: "Video generation ready!"
+
+    // 2. Define the prompt for DeepSeek
+    const prompt = `You are a creative video script assistant. Generate a concise, engaging script for a 15-second social media video (like an Instagram Reel or TikTok) about "${topic}". 
+    Format the response as a simple JSON object with this structure: 
+    { 
+      "videoTitle": "A catchy title",
+      "script": "The full spoken or on-screen text for the 15-second video.",
+      "hashtags": "#motivation #success #mindset"
+    }
+    Make the script energetic and suitable for a fast-paced short video.`;
+
+    // 3. Call the DeepSeek API
+    const deepseekResponse = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat', // Use the correct model name
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        stream: false
+      })
     });
-    
+
+    // 4. Check if the DeepSeek API call was successful
+    if (!deepseekResponse.ok) {
+      const errorText = await deepseekResponse.text();
+      throw new Error(`DeepSeek API error: ${deepseekResponse.status} - ${errorText}`);
+    }
+
+    // 5. Parse the response and send it back
+    const deepseekData = await deepseekResponse.json();
+    const aiMessage = deepseekData.choices[0]?.message?.content;
+
+    // Try to parse the AI's response as JSON, fallback to text if it fails
+    let finalResponse;
+    try {
+      finalResponse = JSON.parse(aiMessage);
+    } catch {
+      finalResponse = { 
+        message: aiMessage,
+        note: "The AI's response was not valid JSON, returning as text."
+      };
+    }
+
+    res.status(200).json({
+      success: true,
+      topic: topic,
+      data: finalResponse
+    });
+
   } catch (error) {
-    res.status(500).json({ 
-      error: error.message,
-      stack: error.stack 
+    console.error('Video API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An unknown error occurred while generating the video script.'
     });
   }
-};
+  }
