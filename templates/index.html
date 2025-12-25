@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Video Merge App</title>
+<style>
+body { font-family: Arial; background: #f0f4ff; color: #333; margin: 0; padding: 0; }
+header { background: #007bff; color: white; padding: 20px; text-align: center; }
+.container { padding: 20px; max-width: 800px; margin: auto; }
+h2 { color: #007bff; }
+button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; margin-top: 10px; }
+button:hover { background: #0056b3; }
+input[type="file"] { margin-top: 10px; }
+.video-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.video-item { border: 1px solid #ccc; padding: 5px; border-radius: 5px; background: #e7f0ff; }
+</style>
+</head>
+<body>
+<header>
+<h1>Video Merge App</h1>
+</header>
+<div class="container">
+
+<h2>Upload Stock Video</h2>
+<form action="/upload-video" method="POST" enctype="multipart/form-data">
+<input type="file" name="video" accept="video/*" required>
+<button type="submit">Upload Video</button>
+</form>
+
+<h2>Upload Audio</h2>
+<form action="/upload-audio" method="POST" enctype="multipart/form-data">
+<input type="file" name="audio" accept="audio/*" required>
+<button type="submit">Upload Audio</button>
+</form>
+
+<h2>Select Clips to Merge</h2>
+<form action="/render" method="POST">
+<div class="video-list">
+{% for v in videos %}
+<div class="video-item">
+<input type="checkbox" name="videos" value="{{ v }}"> {{ v }}
+</div>
+{% endfor %}
+</div>
+<label>Select audio file:</label>
+<select name="audio" required>
+{% for a in os.listdir('static/audio') %}
+<option value="{{ a }}">{{ a }}</option>
+{% endfor %}
+</select>
+<br>
+<button type="submit">Render Video</button>
+</form>
+
+</div>
+</body>
+  </html>
+  
