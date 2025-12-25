@@ -1,0 +1,5 @@
+Flask
+moviepy==1.0.3
+gtts
+Pillow==9.5.0
+requests
